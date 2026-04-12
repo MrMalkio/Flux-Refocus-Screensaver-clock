@@ -69,13 +69,18 @@ function createConfigWindow() {
 
 app.whenReady().then(() => {
   // Parse Windows screensaver arguments
-  if (args.includes('/c') || args.includes('-c')) {
+  // Windows passes arguments in varying formats, e.g. /c, /c:123456, or -c
+  const isSettings = args.some(arg => arg.toLowerCase().startsWith('/c') || arg.toLowerCase().startsWith('-c'));
+  const isPreview = args.some(arg => arg.toLowerCase().startsWith('/p') || arg.toLowerCase().startsWith('-p'));
+
+  if (isSettings) {
     createConfigWindow();
-  } else if (args.some(arg => arg.startsWith('/p') || arg.startsWith('-p'))) {
-    // Preview mode - exiting for MVP
+  } else if (isPreview) {
+    // Handling preview mode accurately requires FFI to SetParent into the Windows display settings HWND.
+    // Instead we will simply quit to let the miniature box remain black, avoiding broken floating popups.
     app.quit();
   } else {
-    // /s or no arguments: Start screensaver
+    // /s or no arguments: Start screensaver visually
     createScreensaverWindow();
   }
 });

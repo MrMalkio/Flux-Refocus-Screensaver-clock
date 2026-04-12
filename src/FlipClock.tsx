@@ -8,7 +8,7 @@ import './FlipClock.css';
 // Simplified approach above requires exact state mgmt. Let's do a more bulletproof version.
 // Instead of multiple cards, we'll build a simpler, highly aesthetically pleasing FlipCard.
 
-export const FlipClock = () => {
+export const FlipClock = ({ previewOnly = false }: { previewOnly?: boolean }) => {
     const [time, setTime] = useState(new Date());
 
     useEffect(() => {
@@ -29,6 +29,8 @@ export const FlipClock = () => {
 
     // Mouse movement exit detection for the screensaver
     useEffect(() => {
+      if (previewOnly) return; // Disable exit loop inside config preview
+
       let lastX: number | null = null;
       let lastY: number | null = null;
 
@@ -55,7 +57,7 @@ export const FlipClock = () => {
 
       window.addEventListener('mousemove', handleMouseMove);
       return () => window.removeEventListener('mousemove', handleMouseMove);
-    }, []);
+    }, [previewOnly]);
 
     return (
         <div className="clock-container">

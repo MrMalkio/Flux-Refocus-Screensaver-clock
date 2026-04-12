@@ -24,20 +24,36 @@ function App() {
 
   if (isConfig) {
     return (
-      <div style={{ padding: 20, color: '#fff', fontFamily: 'Inter' }}>
-        <h2>Screensaver Settings</h2>
-        <div style={{ marginTop: 20, marginBottom: 20 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-            <input type="checkbox" checked={is24Hour} onChange={toggle24Hour} style={{ width: 20, height: 20 }}/>
-            Use 24-Hour Format
-          </label>
+      <div style={{ display: 'flex', height: '100vh', background: '#111', margin: 0, overflow: 'hidden' }}>
+        {/* Settings Panel */}
+        <div style={{ padding: 40, color: '#fff', fontFamily: 'Inter', flex: 1 }}>
+          <h2 style={{ fontSize: '2rem', marginBottom: 10 }}>Screensaver Settings</h2>
+          <p style={{ color: '#aaa', marginBottom: 40 }}>Configure your Flux-Screensaver preferences here.</p>
+
+          <div style={{ marginTop: 20, marginBottom: 40 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 15, cursor: 'pointer', fontSize: '1.2rem' }}>
+              <input type="checkbox" checked={is24Hour} onChange={toggle24Hour} style={{ width: 24, height: 24, cursor: 'pointer' }}/>
+              Use 24-Hour Format
+            </label>
+          </div>
+
+          <button 
+            onClick={closeConfig}
+            style={{ padding: '12px 30px', background: '#333', color: '#fff', border: '1px solid #444', borderRadius: 6, cursor: 'pointer', fontSize: '1.1rem', transition: 'background 0.2s', fontWeight: 600 }}
+            onMouseOver={(e) => e.currentTarget.style.background = '#444'}
+            onMouseOut={(e) => e.currentTarget.style.background = '#333'}
+          >
+            Save & Exit
+          </button>
         </div>
-        <button 
-          onClick={closeConfig}
-          style={{ padding: '8px 16px', background: '#333', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
-        >
-          Save & Close
-        </button>
+
+        {/* Live Preview Panel */}
+        <div style={{ flex: 1, position: 'relative', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderLeft: '1px solid #333' }}>
+            <div style={{ position: 'absolute', top: 20, right: 25, color: '#666', fontFamily: 'Inter', fontSize: '0.9rem', letterSpacing: 1, textTransform: 'uppercase' }}>Live Preview</div>
+            <div style={{ transform: 'scale(0.5)', width: '100vw', height: '100vh', position: 'absolute', transformOrigin: 'center center', pointerEvents: 'none' }}>
+                <FlipClock key={String(is24Hour)} previewOnly={true} />
+            </div>
+        </div>
       </div>
     );
   }
