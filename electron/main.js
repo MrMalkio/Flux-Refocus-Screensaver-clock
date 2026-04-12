@@ -12,17 +12,18 @@ const isDev = process.env.NODE_ENV === 'development';
 function createScreensaverWindow() {
   const displays = screen.getAllDisplays();
   
-  displays.forEach((display, index) => {
-    let window = new BrowserWindow({
+  displays.forEach((display) => {
+    let win = new BrowserWindow({
       x: display.bounds.x,
       y: display.bounds.y,
       width: display.bounds.width,
       height: display.bounds.height,
       fullscreen: true,
       frame: false,
-      alwaysOnTop: !isDev,
-      kiosk: !isDev,
+      alwaysOnTop: true,
       skipTaskbar: true,
+      backgroundColor: '#0b0b0b',
+      show: false, // Don't show until content is ready
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false
@@ -37,19 +38,27 @@ function createScreensaverWindow() {
           slashes: true
         });
 
-    window.loadURL(startUrl);
+    win.loadURL(startUrl);
 
-    // Screensaver exit logic block
-    window.webContents.on('before-input-event', (event, input) => {
-      app.quit();
+    // Only show the window after content has finished rendering
+    win.webContents.on('did-finish-load', () => {
+      win.show();
     });
+
+    // Delay exit detection by 2 seconds to avoid false triggers during startup
+    setTimeout(() => {
+      // Keyboard input exits screensaver
+      win.webContents.on('before-input-event', () => {
+        app.quit();
+      });
+    }, 2000);
   });
 }
 
 function createConfigWindow() {
-  const window = new BrowserWindow({
-    width: 600,
-    height: 400,
+  const win = new BrowserWindow({
+    width: 900,
+    height: 500,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
@@ -60,27 +69,27 @@ function createConfigWindow() {
       ? 'http://localhost:5173?config=true' 
       : url.format({
           pathname: path.join(__dirname, '../dist/index.html'),
-          hash: '/config',
           protocol: 'file:',
-          slashes: true
+          slashes: true,
+          search: '?config=true'
         });
-  window.loadURL(startUrl);
+  win.loadURL(startUrl);
 }
 
 app.whenReady().then(() => {
   // Parse Windows screensaver arguments
-  // Windows passes arguments in varying formats, e.g. /c, /c:123456, or -c
+  // Windows passes arguments in varying formats, e.g. /c, /c:123456, /s, /p:123456
   const isSettings = args.some(arg => arg.toLowerCase().startsWith('/c') || arg.toLowerCase().startsWith('-c'));
-  const isPreview = args.some(arg => arg.toLowerCase().startsWith('/p') || arg.toLowerCase().startsWith('-p'));
+  const isPreview  = args.some(arg => arg.toLowerCase().startsWith('/p') || arg.toLowerCase().startsWith('-p'));
 
   if (isSettings) {
     createConfigWindow();
   } else if (isPreview) {
-    // Handling preview mode accurately requires FFI to SetParent into the Windows display settings HWND.
-    // Instead we will simply quit to let the miniature box remain black, avoiding broken floating popups.
+    // Native preview requires SetParent FFI into the mini-window HWND — skip for now.
+    // Just quit cleanly so the preview area stays black (standard behavior for many screensavers).
     app.quit();
   } else {
-    // /s or no arguments: Start screensaver visually
+    // /s or no arguments: Start screensaver
     createScreensaverWindow();
   }
 });

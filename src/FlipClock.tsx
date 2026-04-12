@@ -27,46 +27,56 @@ export const FlipClock = ({ previewOnly = false }: { previewOnly?: boolean }) =>
     useEffect(() => {
       if (previewOnly) return;
 
-      const quitScreensaver = () => {
-        if ((window as any).require) {
-          const { ipcRenderer } = (window as any).require('electron');
-          ipcRenderer.send('quit-screensaver');
-        }
-      };
+      let cleanup: (() => void) | undefined;
 
-      // Mouse: quit after significant movement
-      let lastX: number | null = null;
-      let lastY: number | null = null;
+      // Delay exit detection to avoid false triggers during startup
+      const startupDelay = setTimeout(() => {
+        const quitScreensaver = () => {
+          if ((window as any).require) {
+            const { ipcRenderer } = (window as any).require('electron');
+            ipcRenderer.send('quit-screensaver');
+          }
+        };
 
-      const handleMouseMove = (e: MouseEvent) => {
-        if (lastX === null || lastY === null) {
-           lastX = e.clientX;
-           lastY = e.clientY;
-           return;
-        }
-        
-        const deltaX = Math.abs(e.clientX - lastX);
-        const deltaY = Math.abs(e.clientY - lastY);
+        // Mouse: quit after significant movement
+        let lastX: number | null = null;
+        let lastY: number | null = null;
 
-        if (deltaX > 10 || deltaY > 10) {
-            quitScreensaver();
-        }
-      };
+        const handleMouseMove = (e: MouseEvent) => {
+          if (lastX === null || lastY === null) {
+             lastX = e.clientX;
+             lastY = e.clientY;
+             return;
+          }
+          
+          const deltaX = Math.abs(e.clientX - lastX);
+          const deltaY = Math.abs(e.clientY - lastY);
 
-      // Keyboard: any key press quits
-      const handleKeyDown = () => quitScreensaver();
+          if (deltaX > 10 || deltaY > 10) {
+              quitScreensaver();
+          }
+        };
 
-      // Mouse click: any click quits
-      const handleMouseDown = () => quitScreensaver();
+        // Keyboard: any key press quits
+        const handleKeyDown = () => quitScreensaver();
 
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('keydown', handleKeyDown);
-      window.addEventListener('mousedown', handleMouseDown);
+        // Mouse click: any click quits
+        const handleMouseDown = () => quitScreensaver();
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('mousedown', handleMouseDown);
+
+        cleanup = () => {
+          window.removeEventListener('mousemove', handleMouseMove);
+          window.removeEventListener('keydown', handleKeyDown);
+          window.removeEventListener('mousedown', handleMouseDown);
+        };
+      }, 3000);
 
       return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('keydown', handleKeyDown);
-        window.removeEventListener('mousedown', handleMouseDown);
+        clearTimeout(startupDelay);
+        cleanup?.();
       };
     }, [previewOnly]);
 
