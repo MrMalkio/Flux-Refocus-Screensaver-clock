@@ -1,9 +1,9 @@
 {
   "name": "refocus-screensaver-clock",
   "description": "Flux — a premium flip-clock screensaver for Windows",
-  "author": "MrMalkio",
+  "author": "Malkio of Makio.com and Duck & Shark",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "main": "electron/main.js",
   "build": {

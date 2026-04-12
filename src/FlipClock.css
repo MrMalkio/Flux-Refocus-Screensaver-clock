@@ -14,21 +14,23 @@ body {
 }
 
 .clock-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1.5);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   gap: 20px;
-  position: relative;
-  scale: 1.5;
 }
 
 .am-pm {
   position: absolute;
-  left: -60px;
+  right: -65px;
   bottom: 10px;
   font-size: 24px;
   font-weight: 600;
-  color: #888;
+  color: #666;
   letter-spacing: 2px;
 }
 
@@ -125,20 +127,29 @@ body {
   text-align: center;
 }
 
+/* Slow, dramatic flip animation */
 .flipping .flap-top {
-  animation: flip-top 0.45s ease-in forwards;
+  animation: flip-top 0.6s cubic-bezier(0.37, 0.01, 0.42, 1) forwards;
 }
 
 .flipping .flap-bottom {
-  animation: flip-bottom 0.45s ease-out 0.45s forwards;
+  animation: flip-bottom 0.5s cubic-bezier(0.15, 0.45, 0.28, 1) 0.6s forwards;
 }
 
 @keyframes flip-top {
-  0% { transform: rotateX(0deg); }
-  100% { transform: rotateX(-90deg); }
+  0% {
+    transform: rotateX(0deg);
+  }
+  100% {
+    transform: rotateX(-90deg);
+  }
 }
 
 @keyframes flip-bottom {
-  0% { transform: rotateX(90deg); }
-  100% { transform: rotateX(0deg); }
+  0% {
+    transform: rotateX(90deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
 }

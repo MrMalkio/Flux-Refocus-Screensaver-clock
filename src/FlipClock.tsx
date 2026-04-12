@@ -4,13 +4,6 @@ import '@fontsource/inter/400.css';
 import '@fontsource/inter/600.css';
 import './FlipClock.css';
 
-
-
-
-
-// Simplified approach above requires exact state mgmt. Let's do a more bulletproof version.
-// Instead of multiple cards, we'll build a simpler, highly aesthetically pleasing FlipCard.
-
 export const FlipClock = ({ previewOnly = false }: { previewOnly?: boolean }) => {
     const [time, setTime] = useState(new Date());
 
@@ -30,10 +23,18 @@ export const FlipClock = ({ previewOnly = false }: { previewOnly?: boolean }) =>
     const hString = hours < 10 ? `0${hours}` : `${hours}`;
     const mString = time.getMinutes() < 10 ? `0${time.getMinutes()}` : `${time.getMinutes()}`;
 
-    // Mouse movement exit detection for the screensaver
+    // Exit detection — mouse movement + keyboard + mouse click
     useEffect(() => {
-      if (previewOnly) return; // Disable exit loop inside config preview
+      if (previewOnly) return;
 
+      const quitScreensaver = () => {
+        if ((window as any).require) {
+          const { ipcRenderer } = (window as any).require('electron');
+          ipcRenderer.send('quit-screensaver');
+        }
+      };
+
+      // Mouse: quit after significant movement
       let lastX: number | null = null;
       let lastY: number | null = null;
 
@@ -47,24 +48,30 @@ export const FlipClock = ({ previewOnly = false }: { previewOnly?: boolean }) =>
         const deltaX = Math.abs(e.clientX - lastX);
         const deltaY = Math.abs(e.clientY - lastY);
 
-        if (deltaX > 20 || deltaY > 20) {
-            // Signal main process to quit
-            if ((window as any).require) {
-                const { ipcRenderer } = (window as any).require('electron');
-                ipcRenderer.send('quit-screensaver');
-            } else {
-                // If not in electron, ignore
-            }
+        if (deltaX > 10 || deltaY > 10) {
+            quitScreensaver();
         }
       };
 
+      // Keyboard: any key press quits
+      const handleKeyDown = () => quitScreensaver();
+
+      // Mouse click: any click quits
+      const handleMouseDown = () => quitScreensaver();
+
       window.addEventListener('mousemove', handleMouseMove);
-      return () => window.removeEventListener('mousemove', handleMouseMove);
+      window.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('mousedown', handleMouseDown);
+
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('keydown', handleKeyDown);
+        window.removeEventListener('mousedown', handleMouseDown);
+      };
     }, [previewOnly]);
 
     return (
         <div className="clock-container">
-            {!is24Hour && <div className="am-pm">{isPM ? 'PM' : 'AM'}</div>}
             <div className="flip-group">
                 <FlipDigit digit={hString.charAt(0)} />
                 <FlipDigit digit={hString.charAt(1)} />
@@ -73,11 +80,12 @@ export const FlipClock = ({ previewOnly = false }: { previewOnly?: boolean }) =>
                 <FlipDigit digit={mString.charAt(0)} />
                 <FlipDigit digit={mString.charAt(1)} />
             </div>
+            {!is24Hour && <div className="am-pm">{isPM ? 'PM' : 'AM'}</div>}
         </div>
     );
 };
 
-// A simpler, very beautiful CSS-only flip digit
+// Flip digit with dramatic animation
 const FlipDigit = ({ digit }: { digit: string }) => {
     const [prev, setPrev] = useState(digit);
     const [curr, setCurr] = useState(digit);
@@ -88,7 +96,8 @@ const FlipDigit = ({ digit }: { digit: string }) => {
             setPrev(curr);
             setCurr(digit);
             setFlipping(true);
-            const t = setTimeout(() => setFlipping(false), 900);
+            // Match total CSS animation duration: 0.6s top + 0.5s bottom = 1.1s
+            const t = setTimeout(() => setFlipping(false), 1200);
             return () => clearTimeout(t);
         }
     }, [digit, curr]);
