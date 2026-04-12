@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FlipClock } from './FlipClock';
+import { version } from '../package.json';
 
 function App() {
   const [isConfig, setIsConfig] = useState(false);
@@ -27,7 +28,8 @@ function App() {
       <div style={{ display: 'flex', height: '100vh', background: '#111', margin: 0, overflow: 'hidden' }}>
         {/* Settings Panel */}
         <div style={{ padding: 40, color: '#fff', fontFamily: 'Inter', flex: 1 }}>
-          <h2 style={{ fontSize: '2rem', marginBottom: 10 }}>Screensaver Settings</h2>
+          <h2 style={{ fontSize: '2rem', marginBottom: 4 }}>Flux Screensaver Settings</h2>
+          <p style={{ color: '#555', fontSize: '0.85rem', marginBottom: 8, fontFamily: 'monospace' }}>v{version}</p>
           <p style={{ color: '#aaa', marginBottom: 40 }}>Configure your Flux-Screensaver preferences here.</p>
 
           <div style={{ marginTop: 20, marginBottom: 40 }}>
