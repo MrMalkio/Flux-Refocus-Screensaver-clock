@@ -1,7 +1,9 @@
 {
   "name": "refocus-screensaver-clock",
+  "description": "Flux — a premium flip-clock screensaver for Windows",
+  "author": "MrMalkio",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "main": "electron/main.js",
   "build": {
@@ -11,6 +13,7 @@
       "output": "release"
     },
     "win": {
+      "icon": "build/icon.png",
       "target": [
         "portable"
       ]
@@ -26,6 +29,8 @@
     "electron:build": "npm run build && electron-builder -w"
   },
   "dependencies": {
+    "@fontsource/bebas-neue": "^5.2.7",
+    "@fontsource/inter": "^5.2.8",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
   },

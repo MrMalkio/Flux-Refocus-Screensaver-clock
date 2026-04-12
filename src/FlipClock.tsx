@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import '@fontsource/bebas-neue';
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/600.css';
 import './FlipClock.css';
 
 
