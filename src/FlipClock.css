@@ -103,9 +103,16 @@ body {
 }
 
 /* ── Flap pieces (the animated halves) ── */
+/* Hidden at rest — only visible during flip animation */
 .digital-flap {
   backface-visibility: hidden;
   transform-style: preserve-3d;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.flipping .digital-flap {
+  opacity: 1;
 }
 
 /* Top flap: shows PREVIOUS digit, folds DOWN to reveal .digital-top (current) */

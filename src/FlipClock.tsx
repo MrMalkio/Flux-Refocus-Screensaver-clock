@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import '@fontsource/bebas-neue';
 import '@fontsource/inter/400.css';
@@ -133,27 +133,36 @@ export const FlipClock = ({ previewOnly = false, settings }: FlipClockProps) => 
 
 // Flip digit with dramatic 3D animation
 const FlipDigit = ({ digit }: { digit: string }) => {
+    const currRef = useRef(digit);
     const [prev, setPrev] = useState(digit);
-    const [curr, setCurr] = useState(digit);
+    const [display, setDisplay] = useState(digit);
     const [flipping, setFlipping] = useState(false);
 
     useEffect(() => {
-        if (digit !== curr) {
-            setPrev(curr);
-            setCurr(digit);
+        if (digit !== currRef.current) {
+            // Start flip: old digit → new digit
+            setPrev(currRef.current);
+            setDisplay(digit);
+            currRef.current = digit;
             setFlipping(true);
-            // 0.5s top + 0.4s bottom + 0.5s delay = ~1.0s total
-            const t = setTimeout(() => setFlipping(false), 1100);
+
+            const t = setTimeout(() => {
+                setFlipping(false);
+                setPrev(digit);
+            }, 1100);
             return () => clearTimeout(t);
         }
-    }, [digit, curr]);
+    }, [digit]);
 
+    // At rest (not flipping): both halves show display, flaps hidden via CSS
+    // During flip: digital-top=display(new), digital-bottom=prev(old),
+    //   flap-top=prev(old, folds down), flap-bottom=display(new, unfolds)
     return (
         <div className={`flip-digit ${flipping ? 'flipping' : ''}`}>
-            <div className="digital-top">{curr}</div>
-            <div className="digital-bottom">{prev}</div>
+            <div className="digital-top">{display}</div>
+            <div className="digital-bottom">{flipping ? prev : display}</div>
             <div className="digital-flap flap-top" data-content={prev}></div>
-            <div className="digital-flap flap-bottom" data-content={curr}></div>
+            <div className="digital-flap flap-bottom" data-content={display}></div>
         </div>
     );
 };

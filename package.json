@@ -3,7 +3,7 @@
   "description": "Flux — a premium flip-clock screensaver for Windows",
   "author": "Malkio of Makio.com and Duck & Shark",
   "private": true,
-  "version": "1.4.0",
+  "version": "1.4.1",
   "type": "module",
   "main": "electron/main.js",
   "build": {
