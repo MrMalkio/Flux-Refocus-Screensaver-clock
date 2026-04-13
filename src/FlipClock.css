@@ -13,24 +13,28 @@ body {
   height: 100vh;
 }
 
+/* ── Clock container ── */
 .clock-container {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%) scale(1.5);
+  transform: translate(-50%, -50%) scale(var(--clock-scale, 1.5));
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 20px;
+  filter: brightness(var(--clock-brightness, 1));
 }
 
+/* ── AM/PM indicator ── */
 .am-pm {
   position: absolute;
   right: -65px;
   bottom: 10px;
   font-size: 24px;
   font-weight: 600;
-  color: #666;
+  color: var(--clock-text-color, #666);
+  opacity: 0.5;
   letter-spacing: 2px;
 }
 
@@ -39,6 +43,7 @@ body {
   gap: 8px;
 }
 
+/* ── Individual digit card ── */
 .flip-digit {
   position: relative;
   width: 140px;
@@ -47,14 +52,14 @@ body {
   border-radius: 12px;
   font-family: 'Bebas Neue', sans-serif;
   font-size: 160px;
-  color: #e0e0e0;
+  color: var(--clock-text-color, #e0e0e0);
   text-align: center;
   line-height: 200px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  perspective: 1000px;
+  perspective: 800px;
 }
 
-/* Horizontal line splitting the cards */
+/* Horizontal split line */
 .flip-digit::after {
   content: '';
   position: absolute;
@@ -63,11 +68,12 @@ body {
   width: 110%;
   height: 2px;
   background-color: #0b0b0b;
-  z-index: 5;
+  z-index: 10;
   transform: translateY(-50%);
   box-shadow: 0 1px 2px rgba(0,0,0,0.8);
 }
 
+/* ── Shared half styles ── */
 .digital-top, .digital-bottom, .digital-flap {
   position: absolute;
   left: 0;
@@ -75,81 +81,128 @@ body {
   height: 50%;
   overflow: hidden;
   border-radius: 12px;
+  color: var(--clock-text-color, #e0e0e0);
 }
 
+/* Static top half: shows the CURRENT digit */
 .digital-top {
   top: 0;
-  background-color: #1e1e1e;
+  background: linear-gradient(180deg, #222 0%, #1a1a1a 100%);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   line-height: 200px;
 }
 
+/* Static bottom half: shows the PREVIOUS digit (revealed as flap lifts) */
 .digital-bottom {
   bottom: 0;
-  background-color: #141414;
+  background: linear-gradient(180deg, #181818 0%, #111 100%);
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   line-height: 0px; 
 }
 
+/* ── Flap pieces (the animated halves) ── */
 .digital-flap {
-  transform-origin: bottom;
   backface-visibility: hidden;
   transform-style: preserve-3d;
 }
 
+/* Top flap: shows PREVIOUS digit, folds DOWN to reveal .digital-top (current) */
 .flap-top {
   top: 0;
-  background-color: #1e1e1e;
+  background: linear-gradient(180deg, #222 0%, #1a1a1a 100%);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   line-height: 200px;
-  z-index: 2;
+  z-index: 4;
+  transform-origin: bottom center;
+  transform: rotateX(0deg);
 }
 
+/* Bottom flap: shows CURRENT digit, unfolds from top to reveal fully */
 .flap-bottom {
   bottom: 0;
-  background-color: #141414;
+  background: linear-gradient(180deg, #181818 0%, #111 100%);
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   line-height: 0px;
-  transform-origin: top;
+  transform-origin: top center;
   transform: rotateX(90deg);
-  z-index: 1;
+  z-index: 3;
 }
 
+/* Flap text content via data attributes */
 .flap-top::after, .flap-bottom::after {
   content: attr(data-content);
   position: absolute;
   left: 0;
   width: 100%;
   text-align: center;
+  color: var(--clock-text-color, #e0e0e0);
 }
 
-/* Slow, dramatic flip animation */
+.flap-top::after {
+  top: 0;
+  line-height: 200px;
+}
+
+.flap-bottom::after {
+  bottom: 0;
+  line-height: 0px;
+}
+
+/* ── 3D Flip Animation ── */
+/* Phase 1: Top flap (showing old digit) folds down */
 .flipping .flap-top {
-  animation: flip-top 0.6s cubic-bezier(0.37, 0.01, 0.42, 1) forwards;
+  animation: flip-top-down 0.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards;
 }
 
+/* Phase 2: Bottom flap (showing new digit) unfolds after top finishes */
 .flipping .flap-bottom {
-  animation: flip-bottom 0.5s cubic-bezier(0.15, 0.45, 0.28, 1) 0.6s forwards;
+  animation: flip-bottom-up 0.4s cubic-bezier(0.15, 0.45, 0.28, 1) 0.5s forwards;
 }
 
-@keyframes flip-top {
+@keyframes flip-top-down {
   0% {
     transform: rotateX(0deg);
+    box-shadow: 0 0 0 rgba(0,0,0,0);
+  }
+  50% {
+    box-shadow: 0 8px 20px rgba(0,0,0,0.6);
   }
   100% {
     transform: rotateX(-90deg);
+    box-shadow: 0 0 0 rgba(0,0,0,0);
   }
 }
 
-@keyframes flip-bottom {
+@keyframes flip-bottom-up {
   0% {
     transform: rotateX(90deg);
+    box-shadow: 0 0 0 rgba(0,0,0,0);
+  }
+  50% {
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.4);
   }
   100% {
     transform: rotateX(0deg);
+    box-shadow: 0 0 0 rgba(0,0,0,0);
   }
+}
+
+/* ── Colon separator ── */
+.clock-colon {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 120px;
+  color: var(--clock-text-color, #e0e0e0);
+  line-height: 200px;
+  opacity: 0.6;
+  animation: colon-pulse 1s ease-in-out infinite;
+  user-select: none;
+}
+
+@keyframes colon-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.2; }
 }

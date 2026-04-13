@@ -1,11 +1,46 @@
 import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import '@fontsource/bebas-neue';
 import '@fontsource/inter/400.css';
 import '@fontsource/inter/600.css';
 import './FlipClock.css';
 
-export const FlipClock = ({ previewOnly = false }: { previewOnly?: boolean }) => {
+export interface ClockSettings {
+    is24Hour: boolean;
+    scale: number;       // 0.5 – 3.0 (1.5 = default)
+    brightness: number;  // 0.2 – 1.0 (1.0 = full brightness)
+    textColor: string;   // hex color
+}
+
+const DEFAULT_SETTINGS: ClockSettings = {
+    is24Hour: false,
+    scale: 1.5,
+    brightness: 1.0,
+    textColor: '#e0e0e0'
+};
+
+export function loadSettings(): ClockSettings {
+    try {
+        const saved = localStorage.getItem('fluxSettings');
+        if (saved) return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+    } catch { /* ignore */ }
+    return DEFAULT_SETTINGS;
+}
+
+export function saveSettings(settings: ClockSettings) {
+    localStorage.setItem('fluxSettings', JSON.stringify(settings));
+    // Keep legacy key in sync for backward compatibility
+    localStorage.setItem('is24Hour', settings.is24Hour.toString());
+}
+
+interface FlipClockProps {
+    previewOnly?: boolean;
+    settings?: ClockSettings;
+}
+
+export const FlipClock = ({ previewOnly = false, settings }: FlipClockProps) => {
     const [time, setTime] = useState(new Date());
+    const config = settings || loadSettings();
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -14,14 +49,20 @@ export const FlipClock = ({ previewOnly = false }: { previewOnly?: boolean }) =>
         return () => clearInterval(timer);
     }, []);
 
-    const [is24Hour] = useState(localStorage.getItem('is24Hour') === 'true');
     let hours = time.getHours();
     const isPM = hours >= 12;
-    if (!is24Hour) {
+    if (!config.is24Hour) {
         hours = hours % 12 || 12; 
     }
     const hString = hours < 10 ? `0${hours}` : `${hours}`;
     const mString = time.getMinutes() < 10 ? `0${time.getMinutes()}` : `${time.getMinutes()}`;
+
+    // Apply CSS custom properties for settings
+    const cssVars: CSSProperties & Record<string, string> = {
+        '--clock-scale': String(config.scale),
+        '--clock-brightness': String(config.brightness),
+        '--clock-text-color': config.textColor,
+    };
 
     // Exit detection — mouse movement + keyboard + mouse click
     useEffect(() => {
@@ -38,7 +79,6 @@ export const FlipClock = ({ previewOnly = false }: { previewOnly?: boolean }) =>
           }
         };
 
-        // Mouse: quit after significant movement
         let lastX: number | null = null;
         let lastY: number | null = null;
 
@@ -48,19 +88,14 @@ export const FlipClock = ({ previewOnly = false }: { previewOnly?: boolean }) =>
              lastY = e.clientY;
              return;
           }
-          
           const deltaX = Math.abs(e.clientX - lastX);
           const deltaY = Math.abs(e.clientY - lastY);
-
           if (deltaX > 10 || deltaY > 10) {
               quitScreensaver();
           }
         };
 
-        // Keyboard: any key press quits
         const handleKeyDown = () => quitScreensaver();
-
-        // Mouse click: any click quits
         const handleMouseDown = () => quitScreensaver();
 
         window.addEventListener('mousemove', handleMouseMove);
@@ -81,21 +116,22 @@ export const FlipClock = ({ previewOnly = false }: { previewOnly?: boolean }) =>
     }, [previewOnly]);
 
     return (
-        <div className="clock-container">
+        <div className="clock-container" style={cssVars}>
             <div className="flip-group">
                 <FlipDigit digit={hString.charAt(0)} />
                 <FlipDigit digit={hString.charAt(1)} />
             </div>
+            <div className="clock-colon">:</div>
             <div className="flip-group">
                 <FlipDigit digit={mString.charAt(0)} />
                 <FlipDigit digit={mString.charAt(1)} />
             </div>
-            {!is24Hour && <div className="am-pm">{isPM ? 'PM' : 'AM'}</div>}
+            {!config.is24Hour && <div className="am-pm">{isPM ? 'PM' : 'AM'}</div>}
         </div>
     );
 };
 
-// Flip digit with dramatic animation
+// Flip digit with dramatic 3D animation
 const FlipDigit = ({ digit }: { digit: string }) => {
     const [prev, setPrev] = useState(digit);
     const [curr, setCurr] = useState(digit);
@@ -106,8 +142,8 @@ const FlipDigit = ({ digit }: { digit: string }) => {
             setPrev(curr);
             setCurr(digit);
             setFlipping(true);
-            // Match total CSS animation duration: 0.6s top + 0.5s bottom = 1.1s
-            const t = setTimeout(() => setFlipping(false), 1200);
+            // 0.5s top + 0.4s bottom + 0.5s delay = ~1.0s total
+            const t = setTimeout(() => setFlipping(false), 1100);
             return () => clearTimeout(t);
         }
     }, [digit, curr]);
