@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FlipClock, loadSettings, saveSettings } from './FlipClock';
 import type { ClockSettings } from './FlipClock';
 import { version } from '../package.json';
@@ -43,40 +43,132 @@ function App() {
       <div style={{ display: 'flex', height: '100vh', background: '#111', margin: 0, overflow: 'hidden' }}>
 
         {/* ── Settings Panel ── */}
-        <div style={{ padding: '32px 36px', color: '#fff', fontFamily: 'Inter, sans-serif', width: 360, minWidth: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '28px 32px', color: '#fff', fontFamily: 'Inter, sans-serif', width: 370, minWidth: 370, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           
           {/* Header */}
-          <div style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: '1.6rem', marginBottom: 2, fontWeight: 600, letterSpacing: '-0.5px' }}>Flux Screensaver</h2>
+          <div style={{ marginBottom: 24 }}>
+            <h2 style={{ fontSize: '1.5rem', marginBottom: 2, fontWeight: 600, letterSpacing: '-0.5px' }}>Flux Screensaver</h2>
             <span style={{ color: '#444', fontSize: '0.78rem', fontFamily: 'monospace' }}>v{version}</span>
           </div>
 
-          {/* ── Time Format ── */}
-          <SettingSection label="Time Format">
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {/* ── CLOCK SECTION ── */}
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          <SectionHeader label="Clock" />
+
+          {/* Show Clock Toggle */}
+          <SettingSection label="Visibility">
             <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontSize: '0.95rem' }}>
-              <ToggleSwitch checked={settings.is24Hour} onChange={(v) => updateSetting('is24Hour', v)} />
-              24-Hour Clock
+              <ToggleSwitch checked={settings.showClock} onChange={(v) => updateSetting('showClock', v)} />
+              Show Clock
             </label>
           </SettingSection>
 
-          {/* ── Clock Size ── */}
-          <SettingSection label={`Clock Size — ${Math.round((settings.scale / 1.5) * 100)}%`}>
-            <input
-              type="range"
-              min="0.5"
-              max="3.5"
-              step="0.05"
-              value={settings.scale}
-              onChange={(e) => updateSetting('scale', parseFloat(e.target.value))}
-              style={sliderStyle}
-            />
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#555', fontSize: '0.7rem', marginTop: 4 }}>
-              <span>Small</span>
-              <span>Full Screen</span>
-            </div>
+          {settings.showClock && (
+            <>
+              {/* Time Format */}
+              <SettingSection label="Time Format">
+                <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontSize: '0.95rem' }}>
+                  <ToggleSwitch checked={settings.is24Hour} onChange={(v) => updateSetting('is24Hour', v)} />
+                  24-Hour Clock
+                </label>
+              </SettingSection>
+
+              {/* Clock Size */}
+              <SettingSection label={`Clock Size — ${Math.round((settings.scale / 1.5) * 100)}%`}>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="3.5"
+                  step="0.05"
+                  value={settings.scale}
+                  onChange={(e) => updateSetting('scale', parseFloat(e.target.value))}
+                  style={sliderStyle}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#555', fontSize: '0.7rem', marginTop: 4 }}>
+                  <span>Small</span>
+                  <span>Full Screen</span>
+                </div>
+              </SettingSection>
+
+              {/* Clock Color */}
+              <SettingSection label="Clock Color">
+                <ColorPicker
+                  value={settings.textColor}
+                  onChange={(c) => updateSetting('textColor', c)}
+                />
+              </SettingSection>
+            </>
+          )}
+
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {/* ── COUNTDOWN SECTION ── */}
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          <SectionHeader label="Countdown" />
+
+          {/* Show Countdown Toggle */}
+          <SettingSection label="Visibility">
+            <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontSize: '0.95rem' }}>
+              <ToggleSwitch checked={settings.showCountdown} onChange={(v) => updateSetting('showCountdown', v)} />
+              Show Minutes Remaining
+            </label>
           </SettingSection>
 
-          {/* ── Brightness ── */}
+          {settings.showCountdown && (
+            <>
+              {/* Countdown Size */}
+              <SettingSection label={`Countdown Size — ${Math.round((settings.countdownScale / 1.5) * 100)}%`}>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="3.5"
+                  step="0.05"
+                  value={settings.countdownScale}
+                  onChange={(e) => updateSetting('countdownScale', parseFloat(e.target.value))}
+                  style={sliderStyle}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#555', fontSize: '0.7rem', marginTop: 4 }}>
+                  <span>Small</span>
+                  <span>Full Screen</span>
+                </div>
+              </SettingSection>
+
+              {/* Countdown Color */}
+              <SettingSection label="Countdown Color">
+                <ColorPicker
+                  value={settings.countdownColor}
+                  onChange={(c) => updateSetting('countdownColor', c)}
+                />
+              </SettingSection>
+            </>
+          )}
+
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {/* ── DISPLAY SECTION ── */}
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {settings.showClock && settings.showCountdown && (
+            <>
+              <SectionHeader label="Layout" />
+
+              <SettingSection label="Position Order">
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <PositionButton
+                    label="Clock on Top"
+                    active={settings.clockPosition === 'top'}
+                    onClick={() => updateSetting('clockPosition', 'top')}
+                  />
+                  <PositionButton
+                    label="Countdown on Top"
+                    active={settings.clockPosition === 'bottom'}
+                    onClick={() => updateSetting('clockPosition', 'bottom')}
+                  />
+                </div>
+              </SettingSection>
+            </>
+          )}
+
+          {/* ── Brightness (shared) ── */}
+          <SectionHeader label="Display" />
           <SettingSection label={`Brightness — ${Math.round(settings.brightness * 100)}%`}>
             <input
               type="range"
@@ -93,43 +185,8 @@ function App() {
             </div>
           </SettingSection>
 
-          {/* ── Text Color ── */}
-          <SettingSection label="Text Color">
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-              {COLOR_PRESETS.map((c) => (
-                <button
-                  key={c.hex}
-                  title={c.label}
-                  onClick={() => updateSetting('textColor', c.hex)}
-                  style={{
-                    width: 32, height: 32,
-                    borderRadius: '50%',
-                    border: settings.textColor.toLowerCase() === c.hex.toLowerCase() ? '2px solid #fff' : '2px solid #333',
-                    background: c.hex,
-                    cursor: 'pointer',
-                    transition: 'border-color 0.15s, transform 0.15s',
-                    transform: settings.textColor.toLowerCase() === c.hex.toLowerCase() ? 'scale(1.15)' : 'scale(1)',
-                    boxShadow: settings.textColor.toLowerCase() === c.hex.toLowerCase() ? `0 0 10px ${c.hex}44` : 'none',
-                  }}
-                />
-              ))}
-            </div>
-            {/* Custom hex input */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <input
-                type="color"
-                value={settings.textColor}
-                onChange={(e) => updateSetting('textColor', e.target.value)}
-                style={{ width: 36, height: 28, border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
-              />
-              <span style={{ color: '#666', fontSize: '0.8rem', fontFamily: 'monospace' }}>
-                {settings.textColor}
-              </span>
-            </div>
-          </SettingSection>
-
           {/* Spacer pushes button to bottom */}
-          <div style={{ flex: 1 }} />
+          <div style={{ flex: 1, minHeight: 16 }} />
 
           {/* ── Save & Exit ── */}
           <button 
@@ -169,7 +226,7 @@ function App() {
             Live Preview
           </div>
           <div style={{ 
-            transform: 'scale(0.42)', 
+            transform: 'scale(0.35)', 
             width: '100vw', 
             height: '100vh', 
             position: 'absolute', 
@@ -187,11 +244,23 @@ function App() {
   return <FlipClock settings={settings} />;
 }
 
+// ── Section header with divider ──
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, marginTop: 8 }}>
+      <span style={{ fontSize: '0.72rem', color: '#555', textTransform: 'uppercase', letterSpacing: 2, fontWeight: 700, whiteSpace: 'nowrap' }}>
+        {label}
+      </span>
+      <div style={{ flex: 1, height: 1, background: '#282828' }} />
+    </div>
+  );
+}
+
 // ── Reusable setting section wrapper ──
 function SettingSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 24 }}>
-      <div style={{ fontSize: '0.78rem', color: '#777', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 10, fontWeight: 600 }}>
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ fontSize: '0.75rem', color: '#777', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8, fontWeight: 600 }}>
         {label}
       </div>
       {children}
@@ -225,6 +294,68 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
         boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
       }} />
     </div>
+  );
+}
+
+// ── Color picker with presets + custom ──
+function ColorPicker({ value, onChange }: { value: string; onChange: (c: string) => void }) {
+  return (
+    <>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+        {COLOR_PRESETS.map((c) => (
+          <button
+            key={c.hex}
+            title={c.label}
+            onClick={() => onChange(c.hex)}
+            style={{
+              width: 28, height: 28,
+              borderRadius: '50%',
+              border: value.toLowerCase() === c.hex.toLowerCase() ? '2px solid #fff' : '2px solid #333',
+              background: c.hex,
+              cursor: 'pointer',
+              transition: 'border-color 0.15s, transform 0.15s',
+              transform: value.toLowerCase() === c.hex.toLowerCase() ? 'scale(1.15)' : 'scale(1)',
+              boxShadow: value.toLowerCase() === c.hex.toLowerCase() ? `0 0 10px ${c.hex}44` : 'none',
+            }}
+          />
+        ))}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          style={{ width: 32, height: 24, border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
+        />
+        <span style={{ color: '#666', fontSize: '0.78rem', fontFamily: 'monospace' }}>
+          {value}
+        </span>
+      </div>
+    </>
+  );
+}
+
+// ── Position toggle button ──
+function PositionButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        flex: 1,
+        padding: '10px 8px',
+        background: active ? '#1a2a4a' : '#1a1a1a',
+        color: active ? '#448aff' : '#666',
+        border: active ? '1px solid #448aff55' : '1px solid #2a2a2a',
+        borderRadius: 8,
+        cursor: 'pointer',
+        fontSize: '0.8rem',
+        fontWeight: 600,
+        transition: 'all 0.2s',
+        letterSpacing: '0.3px',
+      }}
+    >
+      {label}
+    </button>
   );
 }
 

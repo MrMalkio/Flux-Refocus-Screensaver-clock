@@ -13,17 +13,54 @@ body {
   height: 100vh;
 }
 
-/* ── Clock container ── */
-.clock-container {
+/* ── Screensaver layout: stacks clock and countdown vertically ── */
+.screensaver-layout {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%) scale(var(--clock-scale, 1.5));
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.layout-spacer {
+  height: 30px;
+}
+
+/* ── Clock container ── */
+.clock-container {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 20px;
+  transform: scale(var(--clock-scale, 1.5));
   filter: brightness(var(--clock-brightness, 1));
+  transform-origin: center center;
+  position: relative;
+}
+
+/* ── Countdown-specific styles ── */
+.countdown-container {
+  flex-direction: column;
+  gap: 12px;
+}
+
+.countdown-container .flip-group {
+  gap: 6px;
+}
+
+.countdown-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--clock-text-color, #448aff);
+  opacity: 0.5;
+  text-align: center;
+  user-select: none;
 }
 
 /* ── AM/PM indicator ── */
@@ -93,7 +130,7 @@ body {
   line-height: 200px;
 }
 
-/* Static bottom half: shows the PREVIOUS digit (revealed as flap lifts) */
+/* Static bottom half */
 .digital-bottom {
   bottom: 0;
   background: linear-gradient(180deg, #181818 0%, #111 100%);

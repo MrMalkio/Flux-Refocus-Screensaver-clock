@@ -7,16 +7,29 @@ import './FlipClock.css';
 
 export interface ClockSettings {
     is24Hour: boolean;
-    scale: number;       // 0.5 – 3.0 (1.5 = default)
-    brightness: number;  // 0.2 – 1.0 (1.0 = full brightness)
-    textColor: string;   // hex color
+    scale: number;          // 0.5 – 3.5
+    brightness: number;     // 0.1 – 1.0
+    textColor: string;      // hex color
+    // Visibility
+    showClock: boolean;
+    showCountdown: boolean;
+    // Countdown-specific
+    countdownScale: number;   // 0.5 – 3.5
+    countdownColor: string;   // hex color
+    // Layout
+    clockPosition: 'top' | 'bottom'; // where the time clock sits relative to countdown
 }
 
 const DEFAULT_SETTINGS: ClockSettings = {
     is24Hour: false,
     scale: 1.5,
     brightness: 1.0,
-    textColor: '#e0e0e0'
+    textColor: '#e0e0e0',
+    showClock: true,
+    showCountdown: false,
+    countdownScale: 1.0,
+    countdownColor: '#448aff',
+    clockPosition: 'top',
 };
 
 export function loadSettings(): ClockSettings {
@@ -29,7 +42,6 @@ export function loadSettings(): ClockSettings {
 
 export function saveSettings(settings: ClockSettings) {
     localStorage.setItem('fluxSettings', JSON.stringify(settings));
-    // Keep legacy key in sync for backward compatibility
     localStorage.setItem('is24Hour', settings.is24Hour.toString());
 }
 
@@ -49,20 +61,66 @@ export const FlipClock = ({ previewOnly = false, settings }: FlipClockProps) => 
         return () => clearInterval(timer);
     }, []);
 
+    // ── Time calculation ──
     let hours = time.getHours();
     const isPM = hours >= 12;
     if (!config.is24Hour) {
-        hours = hours % 12 || 12; 
+        hours = hours % 12 || 12;
     }
     const hString = hours < 10 ? `0${hours}` : `${hours}`;
     const mString = time.getMinutes() < 10 ? `0${time.getMinutes()}` : `${time.getMinutes()}`;
 
-    // Apply CSS custom properties for settings
-    const cssVars: CSSProperties & Record<string, string> = {
-        '--clock-scale': String(config.scale),
-        '--clock-brightness': String(config.brightness),
-        '--clock-text-color': config.textColor,
-    };
+    // ── Countdown calculation: minutes remaining in the day ──
+    const minutesPassed = time.getHours() * 60 + time.getMinutes();
+    const minutesRemaining = 1440 - minutesPassed;
+    const countdownStr = String(minutesRemaining).padStart(4, '0');
+
+    // ── Build the two display elements ──
+    const clockElement = config.showClock ? (
+        <div
+            className="clock-container"
+            style={{
+                '--clock-scale': String(config.scale),
+                '--clock-brightness': String(config.brightness),
+                '--clock-text-color': config.textColor,
+            } as CSSProperties & Record<string, string>}
+        >
+            <div className="flip-group">
+                <FlipDigit digit={hString.charAt(0)} />
+                <FlipDigit digit={hString.charAt(1)} />
+            </div>
+            <div className="clock-colon">:</div>
+            <div className="flip-group">
+                <FlipDigit digit={mString.charAt(0)} />
+                <FlipDigit digit={mString.charAt(1)} />
+            </div>
+            {!config.is24Hour && <div className="am-pm">{isPM ? 'PM' : 'AM'}</div>}
+        </div>
+    ) : null;
+
+    const countdownElement = config.showCountdown ? (
+        <div
+            className="clock-container countdown-container"
+            style={{
+                '--clock-scale': String(config.countdownScale),
+                '--clock-brightness': String(config.brightness),
+                '--clock-text-color': config.countdownColor,
+            } as CSSProperties & Record<string, string>}
+        >
+            <div className="countdown-label">MINUTES LEFT TODAY</div>
+            <div className="flip-group">
+                {/* Only show leading digits if needed */}
+                {minutesRemaining >= 1000 && <FlipDigit digit={countdownStr.charAt(0)} />}
+                {minutesRemaining >= 100 && <FlipDigit digit={countdownStr.charAt(1)} />}
+                {minutesRemaining >= 10 && <FlipDigit digit={countdownStr.charAt(2)} />}
+                <FlipDigit digit={countdownStr.charAt(3)} />
+            </div>
+        </div>
+    ) : null;
+
+    // ── Order based on clockPosition ──
+    const topElement = config.clockPosition === 'top' ? clockElement : countdownElement;
+    const bottomElement = config.clockPosition === 'top' ? countdownElement : clockElement;
 
     // Exit detection — mouse movement + keyboard + mouse click
     useEffect(() => {
@@ -70,7 +128,6 @@ export const FlipClock = ({ previewOnly = false, settings }: FlipClockProps) => 
 
       let cleanup: (() => void) | undefined;
 
-      // Delay exit detection to avoid false triggers during startup
       const startupDelay = setTimeout(() => {
         const quitScreensaver = () => {
           if ((window as any).require) {
@@ -116,22 +173,15 @@ export const FlipClock = ({ previewOnly = false, settings }: FlipClockProps) => 
     }, [previewOnly]);
 
     return (
-        <div className="clock-container" style={cssVars}>
-            <div className="flip-group">
-                <FlipDigit digit={hString.charAt(0)} />
-                <FlipDigit digit={hString.charAt(1)} />
-            </div>
-            <div className="clock-colon">:</div>
-            <div className="flip-group">
-                <FlipDigit digit={mString.charAt(0)} />
-                <FlipDigit digit={mString.charAt(1)} />
-            </div>
-            {!config.is24Hour && <div className="am-pm">{isPM ? 'PM' : 'AM'}</div>}
+        <div className="screensaver-layout">
+            {topElement}
+            {topElement && bottomElement && <div className="layout-spacer" />}
+            {bottomElement}
         </div>
     );
 };
 
-// Flip digit with dramatic 3D animation
+// ── Flip digit with dramatic 3D animation ──
 const FlipDigit = ({ digit }: { digit: string }) => {
     const currRef = useRef(digit);
     const [prev, setPrev] = useState(digit);
@@ -140,7 +190,6 @@ const FlipDigit = ({ digit }: { digit: string }) => {
 
     useEffect(() => {
         if (digit !== currRef.current) {
-            // Start flip: old digit → new digit
             setPrev(currRef.current);
             setDisplay(digit);
             currRef.current = digit;
@@ -154,9 +203,6 @@ const FlipDigit = ({ digit }: { digit: string }) => {
         }
     }, [digit]);
 
-    // At rest (not flipping): both halves show display, flaps hidden via CSS
-    // During flip: digital-top=display(new), digital-bottom=prev(old),
-    //   flap-top=prev(old, folds down), flap-bottom=display(new, unfolds)
     return (
         <div className={`flip-digit ${flipping ? 'flipping' : ''}`}>
             <div className="digital-top">{display}</div>
