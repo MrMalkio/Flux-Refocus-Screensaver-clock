@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen, ipcMain } from 'electron';
+import { app, BrowserWindow, screen, ipcMain, dialog } from 'electron';
 import path from 'path';
 import url from 'url';
 import { fileURLToPath } from 'url';
@@ -26,7 +26,8 @@ function createScreensaverWindow() {
       show: false, // Don't show until content is ready
       webPreferences: {
         nodeIntegration: true,
-        contextIsolation: false
+        contextIsolation: false,
+        webSecurity: false
       }
     });
 
@@ -57,11 +58,12 @@ function createScreensaverWindow() {
 
 function createConfigWindow() {
   const win = new BrowserWindow({
-    width: 900,
-    height: 500,
+    width: 1000,
+    height: 650,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      webSecurity: false
     }
   });
 
@@ -92,6 +94,20 @@ app.whenReady().then(() => {
     // /s or no arguments: Start screensaver
     createScreensaverWindow();
   }
+});
+
+// ── IPC: Image picker for background ──
+ipcMain.handle('pick-image', async () => {
+  const result = await dialog.showOpenDialog({
+    title: 'Choose Background Image',
+    filters: [
+      { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif'] }
+    ],
+    properties: ['openFile']
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  // Format as a valid file URL for rendering in the background image
+  return 'file:///' + result.filePaths[0].replace(/\\/g, '/');
 });
 
 ipcMain.on('quit-screensaver', () => {

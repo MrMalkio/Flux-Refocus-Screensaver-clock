@@ -7,30 +7,51 @@ body {
   color: #fff;
   font-family: 'Inter', sans-serif;
   overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   height: 100vh;
 }
 
-/* ── Screensaver layout: stacks clock and countdown vertically ── */
+/* ════════════════════════════════════════════
+   Root container — holds bg image + layout
+   ════════════════════════════════════════════ */
+.screensaver-root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* ── Background image layer ── */
+.bg-image {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ════════════════════════════════════════════
+   Screensaver layout: stacks clock + countdown
+   ════════════════════════════════════════════ */
 .screensaver-layout {
   position: absolute;
-  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  z-index: 1;
 }
 
 .layout-spacer {
-  height: 30px;
+  flex-shrink: 0;
 }
 
-/* ── Clock container ── */
-.clock-container {
+/* ════════════════════════════════════════════
+   Clock / Countdown row containers
+   ════════════════════════════════════════════ */
+.clock-row {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -41,14 +62,21 @@ body {
   position: relative;
 }
 
-/* ── Countdown-specific styles ── */
-.countdown-container {
+.countdown-row {
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-.countdown-container .flip-group {
-  gap: 6px;
+.countdown-row .countdown-digits {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+/* ── Countdown header ── */
+.countdown-header {
+  text-align: center;
+  user-select: none;
 }
 
 .countdown-label {
@@ -59,8 +87,25 @@ body {
   text-transform: uppercase;
   color: var(--clock-text-color, #448aff);
   opacity: 0.5;
-  text-align: center;
-  user-select: none;
+}
+
+.countdown-subtext {
+  font-family: 'Inter', sans-serif;
+  font-size: 8px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  color: var(--clock-text-color, #448aff);
+  opacity: 0.3;
+  margin-top: 2px;
+}
+
+/* ── Small seconds for MMMMss format ── */
+.countdown-small-seconds {
+  display: flex;
+  gap: 2px;
+  align-self: flex-end;
+  margin-bottom: 4px;
+  margin-left: -8px;
 }
 
 /* ── AM/PM indicator ── */
@@ -80,7 +125,33 @@ body {
   gap: 8px;
 }
 
-/* ── Individual digit card ── */
+/* ════════════════════════════════════════════
+   Pulse red animation for zero digits in 1440
+   ════════════════════════════════════════════ */
+.pulse-red .flip-digit {
+  animation: zero-pulse 2s ease-in-out infinite;
+}
+
+@keyframes zero-pulse {
+  0%, 100% {
+    color: var(--clock-text-color, #448aff);
+  }
+  50% {
+    color: #ff3333;
+    text-shadow: 0 0 20px rgba(255, 50, 50, 0.4);
+  }
+}
+
+.pulse-red .digital-top,
+.pulse-red .digital-bottom,
+.pulse-red .flap-top::after,
+.pulse-red .flap-bottom::after {
+  animation: zero-pulse 2s ease-in-out infinite;
+}
+
+/* ════════════════════════════════════════════
+   Individual digit card — FULL SIZE
+   ════════════════════════════════════════════ */
 .flip-digit {
   position: relative;
   width: 140px;
@@ -91,9 +162,18 @@ body {
   font-size: 160px;
   color: var(--clock-text-color, #e0e0e0);
   text-align: center;
-  line-height: 200px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   perspective: 800px;
+}
+
+/* ── Small digit variant (for countdown seconds in MMMMss) ── */
+.flip-digit-small {
+  width: 56px;
+  height: 80px;
+  font-size: 64px;
+  line-height: 80px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 /* Horizontal split line */
@@ -111,7 +191,7 @@ body {
 }
 
 /* ── Shared half styles ── */
-.digital-top, .digital-bottom, .digital-flap {
+.digital-top, .digital-bottom {
   position: absolute;
   left: 0;
   width: 100%;
@@ -121,99 +201,131 @@ body {
   color: var(--clock-text-color, #e0e0e0);
 }
 
-/* Static top half: shows the CURRENT digit */
+.flip-digit-small .digital-top,
+.flip-digit-small .digital-bottom {
+  border-radius: 6px;
+}
+
+/* Static top half: ALWAYS shows the CURRENT (new) digit */
 .digital-top {
   top: 0;
   background: linear-gradient(180deg, #222 0%, #1a1a1a 100%);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
-  line-height: 200px;
+  z-index: 1;
 }
 
-/* Static bottom half */
+/* Static bottom half: ALWAYS shows the CURRENT (new) digit */
 .digital-bottom {
   bottom: 0;
   background: linear-gradient(180deg, #181818 0%, #111 100%);
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-  line-height: 0px; 
+  z-index: 1;
 }
 
-/* ── Flap pieces (the animated halves) ── */
-/* Hidden at rest — only visible during flip animation */
-.digital-flap {
-  backface-visibility: hidden;
-  transform-style: preserve-3d;
+/* ════════════════════════════════════════════
+   Flap pieces (the animated halves)
+   Hidden at rest — only visible during flip
+   ════════════════════════════════════════════ */
+.flap-top,
+.flap-bottom {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  overflow: hidden;
+  color: var(--clock-text-color, #e0e0e0);
   opacity: 0;
   pointer-events: none;
+  z-index: 5;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
-.flipping .digital-flap {
-  opacity: 1;
+.flip-digit-small .flap-top,
+.flip-digit-small .flap-bottom {
+  border-radius: 6px;
 }
 
-/* Top flap: shows PREVIOUS digit, folds DOWN to reveal .digital-top (current) */
 .flap-top {
   top: 0;
-  background: linear-gradient(180deg, #222 0%, #1a1a1a 100%);
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  line-height: 200px;
-  z-index: 4;
+  border-radius: 12px 12px 0 0;
   transform-origin: bottom center;
-  transform: rotateX(0deg);
+  background: linear-gradient(180deg, #222 0%, #1a1a1a 100%);
 }
 
-/* Bottom flap: shows CURRENT digit, unfolds from top to reveal fully */
+.flip-digit-small .flap-top {
+  border-radius: 6px 6px 0 0;
+}
+
 .flap-bottom {
   bottom: 0;
-  background: linear-gradient(180deg, #181818 0%, #111 100%);
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-  line-height: 0px;
+  border-radius: 0 0 12px 12px;
   transform-origin: top center;
-  transform: rotateX(90deg);
-  z-index: 3;
+  background: linear-gradient(180deg, #181818 0%, #111 100%);
 }
 
-/* Flap text content via data attributes */
-.flap-top::after, .flap-bottom::after {
+.flip-digit-small .flap-bottom {
+  border-radius: 0 0 6px 6px;
+}
+
+/* Pseudo-elements for text content */
+.digital-top::after,
+.digital-bottom::after,
+.flap-top::after,
+.flap-bottom::after {
   content: attr(data-content);
   position: absolute;
   left: 0;
   width: 100%;
+  height: 200px;
+  line-height: 200px;
   text-align: center;
   color: var(--clock-text-color, #e0e0e0);
 }
 
+.flip-digit-small .digital-top::after,
+.flip-digit-small .digital-bottom::after,
+.flip-digit-small .flap-top::after,
+.flip-digit-small .flap-bottom::after {
+  height: 80px;
+  line-height: 80px;
+}
+
+/* Specific position adjustments */
+.digital-top::after,
 .flap-top::after {
   top: 0;
-  line-height: 200px;
 }
 
+.digital-bottom::after,
 .flap-bottom::after {
   bottom: 0;
-  line-height: 0px;
 }
 
-/* ── 3D Flip Animation ── */
-/* Phase 1: Top flap (showing old digit) folds down */
+/* ════════════════════════════════════════════
+   Animation Sequences
+   ════════════════════════════════════════════ */
 .flipping .flap-top {
-  animation: flip-top-down 0.5s cubic-bezier(0.45, 0.05, 0.55, 0.95) forwards;
+  opacity: 1;
+  animation: fold-top var(--flip-speed, 0.6s) linear forwards;
 }
 
-/* Phase 2: Bottom flap (showing new digit) unfolds after top finishes */
 .flipping .flap-bottom {
-  animation: flip-bottom-up 0.4s cubic-bezier(0.15, 0.45, 0.28, 1) 0.5s forwards;
+  opacity: 1;
+  animation: fold-bottom var(--flip-speed, 0.6s) linear forwards;
 }
 
-@keyframes flip-top-down {
+@keyframes fold-top {
   0% {
     transform: rotateX(0deg);
     box-shadow: 0 0 0 rgba(0,0,0,0);
   }
   50% {
-    box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+    transform: rotateX(-90deg);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.8);
   }
   100% {
     transform: rotateX(-90deg);
@@ -221,13 +333,13 @@ body {
   }
 }
 
-@keyframes flip-bottom-up {
+@keyframes fold-bottom {
   0% {
     transform: rotateX(90deg);
-    box-shadow: 0 0 0 rgba(0,0,0,0);
   }
   50% {
-    box-shadow: 0 -4px 12px rgba(0,0,0,0.4);
+    transform: rotateX(90deg);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.8);
   }
   100% {
     transform: rotateX(0deg);
@@ -249,4 +361,35 @@ body {
 @keyframes colon-pulse {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 0.2; }
+}
+
+/* ════════════════════════════════════════════
+   Session info bar
+   ════════════════════════════════════════════ */
+.session-info-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  justify-content: space-between;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.session-info {
+  font-family: 'Inter', sans-serif;
+  font-size: calc(13px * var(--info-scale, 0.6));
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.35);
+  letter-spacing: 1px;
+  user-select: none;
+}
+
+.session-left {
+  text-align: left;
+}
+
+.session-right {
+  text-align: right;
 }

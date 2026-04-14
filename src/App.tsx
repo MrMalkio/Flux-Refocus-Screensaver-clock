@@ -37,6 +37,18 @@ function App() {
     window.close();
   };
 
+  const pickBackgroundImage = async () => {
+    try {
+      if ((window as any).require) {
+        const { ipcRenderer } = (window as any).require('electron');
+        const result = await ipcRenderer.invoke('pick-image');
+        if (result) {
+          updateSetting('backgroundImage', result);
+        }
+      }
+    } catch { /* ignore in browser dev mode */ }
+  };
+
   // ── Settings / Config mode ──
   if (isConfig) {
     return (
@@ -67,11 +79,17 @@ function App() {
           {settings.showClock && (
             <>
               {/* Time Format */}
-              <SettingSection label="Time Format">
-                <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontSize: '0.95rem' }}>
-                  <ToggleSwitch checked={settings.is24Hour} onChange={(v) => updateSetting('is24Hour', v)} />
-                  24-Hour Clock
-                </label>
+              <SettingSection label="Format">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontSize: '0.95rem' }}>
+                    <ToggleSwitch checked={settings.is24Hour} onChange={(v) => updateSetting('is24Hour', v)} />
+                    24-Hour Clock
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontSize: '0.95rem' }}>
+                    <ToggleSwitch checked={settings.showClockSeconds} onChange={(v) => updateSetting('showClockSeconds', v)} />
+                    Show Seconds
+                  </label>
+                </div>
               </SettingSection>
 
               {/* Clock Size */}
@@ -85,10 +103,21 @@ function App() {
                   onChange={(e) => updateSetting('scale', parseFloat(e.target.value))}
                   style={sliderStyle}
                 />
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#555', fontSize: '0.7rem', marginTop: 4 }}>
-                  <span>Small</span>
-                  <span>Full Screen</span>
-                </div>
+                <SliderLabels left="Small" right="Full Screen" />
+              </SettingSection>
+
+              {/* Clock Brightness */}
+              <SettingSection label={`Clock Brightness — ${Math.round(settings.clockBrightness * 100)}%`}>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="1"
+                  step="0.05"
+                  value={settings.clockBrightness}
+                  onChange={(e) => updateSetting('clockBrightness', parseFloat(e.target.value))}
+                  style={sliderStyle}
+                />
+                <SliderLabels left="Dim" right="Full" />
               </SettingSection>
 
               {/* Clock Color */}
@@ -104,18 +133,97 @@ function App() {
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {/* ── COUNTDOWN SECTION ── */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          <SectionHeader label="Countdown" />
+          <SectionHeader label="1440 Countdown" />
 
           {/* Show Countdown Toggle */}
           <SettingSection label="Visibility">
             <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontSize: '0.95rem' }}>
               <ToggleSwitch checked={settings.showCountdown} onChange={(v) => updateSetting('showCountdown', v)} />
-              Show Minutes Remaining
+              1440 Countdown
             </label>
+            <div style={{ color: '#555', fontSize: '0.72rem', marginTop: 6, lineHeight: 1.4 }}>
+              Counts down from 1440 minutes until 0 remain in the day
+            </div>
           </SettingSection>
 
           {settings.showCountdown && (
             <>
+              {/* Countdown Mode */}
+              <SettingSection label="Mode">
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <PositionButton
+                    label="Daily (1440)"
+                    active={settings.countdownMode === 'daily'}
+                    onClick={() => updateSetting('countdownMode', 'daily')}
+                  />
+                  <PositionButton
+                    label="Custom Timer"
+                    active={settings.countdownMode === 'custom'}
+                    onClick={() => updateSetting('countdownMode', 'custom')}
+                  />
+                </div>
+              </SettingSection>
+
+              {/* Display Format (daily mode only) */}
+              {settings.countdownMode === 'daily' && (
+                <SettingSection label="Display Format">
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <PositionButton
+                      label="MMMMss"
+                      active={settings.countdownDisplayFormat === 'MMMMss'}
+                      onClick={() => updateSetting('countdownDisplayFormat', 'MMMMss')}
+                    />
+                    <PositionButton
+                      label="MMMM:SS"
+                      active={settings.countdownDisplayFormat === 'MMMM:SS'}
+                      onClick={() => updateSetting('countdownDisplayFormat', 'MMMM:SS')}
+                    />
+                    <PositionButton
+                      label="HH:MM:SS"
+                      active={settings.countdownDisplayFormat === 'HH:MM:SS'}
+                      onClick={() => updateSetting('countdownDisplayFormat', 'HH:MM:SS')}
+                    />
+                  </div>
+                  <div style={{ color: '#555', fontSize: '0.68rem', marginTop: 6, lineHeight: 1.3 }}>
+                    {settings.countdownDisplayFormat === 'MMMMss' && '4-digit minutes with small seconds'}
+                    {settings.countdownDisplayFormat === 'MMMM:SS' && '4-digit minutes : seconds'}
+                    {settings.countdownDisplayFormat === 'HH:MM:SS' && 'Standard hours : minutes : seconds'}
+                  </div>
+                </SettingSection>
+              )}
+
+              {/* Show Seconds toggle */}
+              <SettingSection label="Seconds">
+                <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontSize: '0.95rem' }}>
+                  <ToggleSwitch checked={settings.showCountdownSeconds} onChange={(v) => updateSetting('showCountdownSeconds', v)} />
+                  Show Seconds
+                </label>
+              </SettingSection>
+
+              {/* Custom target time */}
+              {settings.countdownMode === 'custom' && (
+                <SettingSection label="Count Down To">
+                  <input
+                    type="time"
+                    value={settings.customCountdownTarget}
+                    onChange={(e) => updateSetting('customCountdownTarget', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      background: '#1a1a1a',
+                      border: '1px solid #333',
+                      borderRadius: 6,
+                      color: '#fff',
+                      fontSize: '0.9rem',
+                      fontFamily: 'monospace',
+                    }}
+                  />
+                  <div style={{ color: '#555', fontSize: '0.72rem', marginTop: 4 }}>
+                    Set a target time (24h format) to count down to
+                  </div>
+                </SettingSection>
+              )}
+
               {/* Countdown Size */}
               <SettingSection label={`Countdown Size — ${Math.round((settings.countdownScale / 1.5) * 100)}%`}>
                 <input
@@ -127,10 +235,21 @@ function App() {
                   onChange={(e) => updateSetting('countdownScale', parseFloat(e.target.value))}
                   style={sliderStyle}
                 />
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#555', fontSize: '0.7rem', marginTop: 4 }}>
-                  <span>Small</span>
-                  <span>Full Screen</span>
-                </div>
+                <SliderLabels left="Small" right="Full Screen" />
+              </SettingSection>
+
+              {/* Countdown Brightness */}
+              <SettingSection label={`Countdown Brightness — ${Math.round(settings.countdownBrightness * 100)}%`}>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="1"
+                  step="0.05"
+                  value={settings.countdownBrightness}
+                  onChange={(e) => updateSetting('countdownBrightness', parseFloat(e.target.value))}
+                  style={sliderStyle}
+                />
+                <SliderLabels left="Dim" right="Full" />
               </SettingSection>
 
               {/* Countdown Color */}
@@ -140,15 +259,68 @@ function App() {
                   onChange={(c) => updateSetting('countdownColor', c)}
                 />
               </SettingSection>
+              {/* Zero Pulsing */}
+              <SettingSection label="Pulse Effect">
+                <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontSize: '0.95rem' }}>
+                  <ToggleSwitch checked={settings.enableZeroPulse} onChange={(v) => updateSetting('enableZeroPulse', v)} />
+                  Pulse Leading Zeros
+                </label>
+                <div style={{ color: '#555', fontSize: '0.72rem', marginTop: 6, lineHeight: 1.4 }}>
+                  Make digits pulse red once they become zero.
+                </div>
+              </SettingSection>
+
+              {settings.enableZeroPulse && (
+                <SettingSection label={`Pulse Speed — ${settings.zeroPulseSpeed.toFixed(1)}s`}>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="5.0"
+                    step="0.5"
+                    value={settings.zeroPulseSpeed}
+                    onChange={(e) => updateSetting('zeroPulseSpeed', parseFloat(e.target.value))}
+                    style={sliderStyle}
+                  />
+                  <SliderLabels left="Fast" right="Slow" />
+                </SettingSection>
+              )}
             </>
           )}
 
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {/* ── DISPLAY SECTION ── */}
+          {/* ── LAYOUT SECTION ── */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          <SectionHeader label="Layout" />
+
+          {/* Vertical Position */}
+          <SettingSection label={`Vertical Position — ${settings.clockVerticalOffset}%`}>
+            <input
+              type="range"
+              min="10"
+              max="90"
+              step="1"
+              value={settings.clockVerticalOffset}
+              onChange={(e) => updateSetting('clockVerticalOffset', parseInt(e.target.value))}
+              style={sliderStyle}
+            />
+            <SliderLabels left="Top" right="Bottom" />
+          </SettingSection>
+
+          {/* Element Spacing (only when both visible) */}
           {settings.showClock && settings.showCountdown && (
             <>
-              <SectionHeader label="Layout" />
+              <SettingSection label={`Element Spacing — ${settings.elementSpacing}px`}>
+                <input
+                  type="range"
+                  min="0"
+                  max="200"
+                  step="5"
+                  value={settings.elementSpacing}
+                  onChange={(e) => updateSetting('elementSpacing', parseInt(e.target.value))}
+                  style={sliderStyle}
+                />
+                <SliderLabels left="None" right="Far Apart" />
+              </SettingSection>
 
               <SettingSection label="Position Order">
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -167,48 +339,163 @@ function App() {
             </>
           )}
 
-          {/* ── Brightness (shared) ── */}
-          <SectionHeader label="Display" />
-          <SettingSection label={`Brightness — ${Math.round(settings.brightness * 100)}%`}>
-            <input
-              type="range"
-              min="0.1"
-              max="1"
-              step="0.05"
-              value={settings.brightness}
-              onChange={(e) => updateSetting('brightness', parseFloat(e.target.value))}
-              style={sliderStyle}
-            />
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#555', fontSize: '0.7rem', marginTop: 4 }}>
-              <span>Dim</span>
-              <span>Full</span>
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {/* ── SESSION INFO SECTION ── */}
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          <SectionHeader label="Session Info" />
+
+          <SettingSection label="Overlays">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontSize: '0.95rem' }}>
+                <ToggleSwitch checked={settings.showSessionDuration} onChange={(v) => updateSetting('showSessionDuration', v)} />
+                Session Duration
+              </label>
+              <div style={{ color: '#555', fontSize: '0.7rem', marginLeft: 56, marginTop: -6 }}>
+                How long the screensaver has been running
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontSize: '0.95rem' }}>
+                <ToggleSwitch checked={settings.showLastActive} onChange={(v) => updateSetting('showLastActive', v)} />
+                Last Active
+              </label>
+              <div style={{ color: '#555', fontSize: '0.7rem', marginLeft: 56, marginTop: -6 }}>
+                Time since last screensaver session
+              </div>
             </div>
           </SettingSection>
 
-          {/* Spacer pushes button to bottom */}
+          {(settings.showSessionDuration || settings.showLastActive) && (
+            <SettingSection label={`Info Size — ${Math.round(settings.infoScale * 100)}%`}>
+              <input
+                type="range"
+                min="0.3"
+                max="1.0"
+                step="0.05"
+                value={settings.infoScale}
+                onChange={(e) => updateSetting('infoScale', parseFloat(e.target.value))}
+                style={sliderStyle}
+              />
+              <SliderLabels left="Tiny" right="Max" />
+            </SettingSection>
+          )}
+
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {/* ── BACKGROUND SECTION ── */}
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          <SectionHeader label="Background" />
+
+          <SettingSection label="Background Image">
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <button
+                onClick={pickBackgroundImage}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  background: '#1a2a4a',
+                  color: '#448aff',
+                  border: '1px solid #448aff55',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                }}
+              >
+                Choose Image…
+              </button>
+              {settings.backgroundImage && (
+                <button
+                  onClick={() => updateSetting('backgroundImage', '')}
+                  style={{
+                    padding: '8px 12px',
+                    background: '#2a1a1a',
+                    color: '#ff5252',
+                    border: '1px solid #ff525255',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            {settings.backgroundImage && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 40, height: 28,
+                  borderRadius: 4,
+                  backgroundImage: `url("${settings.backgroundImage}")`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  border: '1px solid #333',
+                }} />
+                <span style={{ color: '#555', fontSize: '0.7rem', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
+                  {settings.backgroundImage.split(/[\\/]/).pop()}
+                </span>
+              </div>
+            )}
+          </SettingSection>
+
+          {settings.backgroundImage && (
+            <SettingSection label={`Background Opacity — ${Math.round(settings.backgroundOpacity * 100)}%`}>
+              <input
+                type="range"
+                min="0.05"
+                max="1"
+                step="0.05"
+                value={settings.backgroundOpacity}
+                onChange={(e) => updateSetting('backgroundOpacity', parseFloat(e.target.value))}
+                style={sliderStyle}
+              />
+              <SliderLabels left="Subtle" right="Full" />
+            </SettingSection>
+          )}
+
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {/* ── DISPLAY SECTION ── */}
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          <SectionHeader label="Display" />
+
+          <SettingSection label={`Flip Speed — ${settings.flipSpeed.toFixed(1)}s`}>
+            <input
+              type="range"
+              min="0.3"
+              max="1.5"
+              step="0.1"
+              value={settings.flipSpeed}
+              onChange={(e) => updateSetting('flipSpeed', parseFloat(e.target.value))}
+              style={sliderStyle}
+            />
+            <SliderLabels left="Snappy" right="Dramatic" />
+          </SettingSection>
+
+          {/* Spacer pushes buttons to bottom */}
           <div style={{ flex: 1, minHeight: 16 }} />
 
-          {/* ── Save & Exit ── */}
-          <button 
-            onClick={closeConfig}
-            style={{
-              padding: '12px 30px', 
-              background: '#222', 
-              color: '#fff', 
-              border: '1px solid #333', 
-              borderRadius: 8, 
-              cursor: 'pointer', 
-              fontSize: '1rem', 
-              transition: 'all 0.2s', 
-              fontWeight: 600,
-              width: '100%',
-              letterSpacing: '0.5px',
-            }}
-            onMouseOver={(e) => { e.currentTarget.style.background = '#333'; e.currentTarget.style.borderColor = '#555'; }}
-            onMouseOut={(e) => { e.currentTarget.style.background = '#222'; e.currentTarget.style.borderColor = '#333'; }}
-          >
-            Save & Exit
-          </button>
+          {/* ── Save & Save+Exit ── */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <SaveButton />
+            <button 
+              onClick={closeConfig}
+              style={{
+                flex: 1,
+                padding: '12px 16px', 
+                background: '#222', 
+                color: '#fff', 
+                border: '1px solid #333', 
+                borderRadius: 8, 
+                cursor: 'pointer', 
+                fontSize: '0.9rem', 
+                transition: 'all 0.2s', 
+                fontWeight: 600,
+                letterSpacing: '0.5px',
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.background = '#333'; e.currentTarget.style.borderColor = '#555'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = '#222'; e.currentTarget.style.borderColor = '#333'; }}
+            >
+              Save & Exit
+            </button>
+          </div>
         </div>
 
         {/* ── Live Preview Panel ── */}
@@ -264,6 +551,16 @@ function SettingSection({ label, children }: { label: string; children: React.Re
         {label}
       </div>
       {children}
+    </div>
+  );
+}
+
+// ── Slider labels ──
+function SliderLabels({ left, right }: { left: string; right: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#555', fontSize: '0.7rem', marginTop: 4 }}>
+      <span>{left}</span>
+      <span>{right}</span>
     </div>
   );
 }
@@ -369,5 +666,33 @@ const sliderStyle: React.CSSProperties = {
   outline: 'none',
   cursor: 'pointer',
 };
+// ── Save button with confirmation ──
+function SaveButton() {
+  const [saved, setSaved] = useState(false);
+  const handleSave = () => {
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+  return (
+    <button
+      onClick={handleSave}
+      style={{
+        flex: 1,
+        padding: '12px 16px',
+        background: saved ? '#1a3a1a' : '#1a2a4a',
+        color: saved ? '#69f0ae' : '#448aff',
+        border: saved ? '1px solid #69f0ae55' : '1px solid #448aff55',
+        borderRadius: 8,
+        cursor: 'pointer',
+        fontSize: '0.9rem',
+        transition: 'all 0.3s',
+        fontWeight: 600,
+        letterSpacing: '0.5px',
+      }}
+    >
+      {saved ? 'Saved ✓' : 'Save'}
+    </button>
+  );
+}
 
 export default App;
