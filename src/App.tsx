@@ -27,6 +27,20 @@ function App() {
     }
   }, []);
 
+  // Forward settings to the Electron main process so it can decide (before any
+  // renderer exists) which display window loads the Tabatha Context View.
+  // Main can't read renderer localStorage directly, so the config window pushes
+  // the current settings over IPC on load and on every change.
+  useEffect(() => {
+    if (!isConfig) return;
+    try {
+      if ((window as any).require) {
+        const { ipcRenderer } = (window as any).require('electron');
+        ipcRenderer.send('flux-settings-updated', settings);
+      }
+    } catch { /* ignore in browser dev mode */ }
+  }, [isConfig, settings]);
+
   const updateSetting = <K extends keyof ClockSettings>(key: K, value: ClockSettings[K]) => {
     const next = { ...settings, [key]: value };
     setSettings(next);
@@ -45,6 +59,15 @@ function App() {
         if (result) {
           updateSetting('backgroundImage', result);
         }
+      }
+    } catch { /* ignore in browser dev mode */ }
+  };
+
+  const openTabathaSignIn = () => {
+    try {
+      if ((window as any).require) {
+        const { ipcRenderer } = (window as any).require('electron');
+        ipcRenderer.send('open-tabatha-signin');
       }
     } catch { /* ignore in browser dev mode */ }
   };
@@ -450,6 +473,43 @@ function App() {
               <SliderLabels left="Subtle" right="Full" />
             </SettingSection>
           )}
+
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {/* ── TABATHA SECTION ── */}
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          <SectionHeader label="Tabatha" />
+
+          <SettingSection label="Context View">
+            <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontSize: '0.95rem' }}>
+              <ToggleSwitch checked={settings.enableTabathaContextView} onChange={(v) => updateSetting('enableTabathaContextView', v)} />
+              Show Tabatha Context View
+            </label>
+            <div style={{ color: '#555', fontSize: '0.72rem', marginTop: 6, lineHeight: 1.4 }}>
+              On your primary display, replaces the flip clock with the live Tabatha Context View (current focus, timer, timeline, phone-away alert). Other displays keep the flip clock. Automatically falls back to the flip clock if Tabatha can't be reached.
+            </div>
+          </SettingSection>
+
+          <SettingSection label="Account">
+            <button
+              onClick={openTabathaSignIn}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                background: '#1a2a4a',
+                color: '#448aff',
+                border: '1px solid #448aff55',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: '0.85rem',
+                fontWeight: 600,
+              }}
+            >
+              Sign in to Tabatha…
+            </button>
+            <div style={{ color: '#555', fontSize: '0.72rem', marginTop: 6, lineHeight: 1.4 }}>
+              Opens a one-time sign-in window. Once you're signed in, the Context View reuses that session automatically.
+            </div>
+          </SettingSection>
 
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {/* ── DISPLAY SECTION ── */}
