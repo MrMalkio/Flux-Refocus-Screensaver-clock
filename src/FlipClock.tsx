@@ -46,6 +46,9 @@ export interface ClockSettings {
 
     // Animation
     flipSpeed: number;            // 0.3 – 1.5 (seconds, base duration)
+
+    // Tabatha
+    enableTabathaContextView: boolean; // show the live Tabatha Context View on the primary display instead of the flip clock
 }
 
 const DEFAULT_SETTINGS: ClockSettings = {
@@ -79,6 +82,8 @@ const DEFAULT_SETTINGS: ClockSettings = {
     backgroundOpacity: 0.3,
 
     flipSpeed: 0.6,
+
+    enableTabathaContextView: false,
 };
 
 export function loadSettings(): ClockSettings {
